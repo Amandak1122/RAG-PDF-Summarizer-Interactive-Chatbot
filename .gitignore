@@ -1,0 +1,56 @@
+# ==========================================
+# Security & Credentials
+# ==========================================
+.env
+*.env
+!.env.example
+
+# ==========================================
+# Python Environments & Bytecode
+# ==========================================
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ==========================================
+# Testing & Tooling Caches
+# ==========================================
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# ==========================================
+# Runtime Storage & User Uploads
+# ==========================================
+data/uploads/*
+!data/uploads/.gitkeep
+data/faiss_index/*
+!data/faiss_index/.gitkeep
+
+# ==========================================
+# Archived Test Data Backups (Do Not Publish Personal PDFs)
+# ==========================================
+archive/test_uploads_backup/
+archive/test_faiss_indexes_backup/
+
+# ==========================================
+# Sample Documents (Explicitly Tracked for Reproducible Testing)
+# ==========================================
+!sample_documents/*.pdf
+!sample_documents/*.txt
+
+# ==========================================
+# OS & IDE Specific
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
