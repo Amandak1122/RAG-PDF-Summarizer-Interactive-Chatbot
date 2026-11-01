@@ -14,7 +14,9 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-BASE_URL = "http://127.0.0.1:8000/api"
+BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api").rstrip("/")
+if not BASE_URL.endswith("/api"):
+    BASE_URL = f"{BASE_URL}/api"
 SAMPLE_DIR = Path(__file__).resolve().parent.parent / "sample_documents"
 AI_PRIMER_PDF = SAMPLE_DIR / "ai_primer.pdf"
 EMPTY_PDF = SAMPLE_DIR / "empty.pdf"

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: rag-pdf-fastapi-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: CHUNK_SIZE
+        value: "800"
+      - key: CHUNK_OVERLAP
+        value: "100"
+      - key: TOP_K_RESULTS
+        value: "4"
+      - key: SIMILARITY_DISTANCE_THRESHOLD
+        value: "1.45"
+      - key: SIMILARITY_COSINE_MIN
+        value: "-0.05"
+

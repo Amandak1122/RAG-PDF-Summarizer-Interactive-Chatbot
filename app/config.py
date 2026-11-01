@@ -37,6 +37,11 @@ class Settings:
     VECTOR_STORE_DIR: Path = PROJECT_ROOT / "data" / "faiss_index"
     SAMPLE_DOCS_DIR: Path = PROJECT_ROOT / "sample_documents"
 
+    # Server & Cloud Hosting Configuration
+    HOST: str = os.getenv("HOST", "0.0.0.0").strip()
+    PORT: int = int(os.getenv("PORT", "8000"))
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*").strip()
+
     # Upload Constraints (50 MB limit, PDF only)
     MAX_FILE_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
 

@@ -1,8 +1,11 @@
+import os
 import time
 import requests
 from pathlib import Path
 
-BASE_URL = "http://127.0.0.1:8000/api"
+BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api").rstrip("/")
+if not BASE_URL.endswith("/api"):
+    BASE_URL = f"{BASE_URL}/api"
 SESSION_ID = "live_perf_session"
 SAMPLE_PDF = Path("sample_documents/ai_primer.pdf")
 

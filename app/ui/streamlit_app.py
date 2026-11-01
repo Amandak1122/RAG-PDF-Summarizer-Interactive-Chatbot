@@ -1,3 +1,4 @@
+import os
 import json
 import uuid
 import streamlit as st
@@ -11,8 +12,34 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def _resolve_backend_url() -> str:
+    """
+    Resolves the FastAPI backend URL hierarchically:
+    1. Streamlit Secrets (for Streamlit Community Cloud: st.secrets["API_BASE_URL"])
+    2. Environment Variable (API_BASE_URL)
+    3. Localhost Fallback (for local development: http://127.0.0.1:8000/api)
+    """
+    raw_url = None
+    try:
+        if hasattr(st, "secrets") and "API_BASE_URL" in st.secrets:
+            raw_url = str(st.secrets["API_BASE_URL"]).strip()
+    except Exception:
+        pass
+
+    if not raw_url:
+        raw_url = os.getenv("API_BASE_URL", "").strip()
+
+    if not raw_url:
+        raw_url = "http://127.0.0.1:8000/api"
+
+    # Normalize trailing slash and ensure /api endpoint prefix
+    raw_url = raw_url.rstrip("/")
+    if not raw_url.endswith("/api"):
+        raw_url = f"{raw_url}/api"
+    return raw_url
+
 # Backend REST API configuration
-BACKEND_BASE_URL = "http://127.0.0.1:8000/api"
+BACKEND_BASE_URL = _resolve_backend_url()
 
 # Initialize Session State
 if "session_id" not in st.session_state:
@@ -52,11 +79,11 @@ with st.sidebar:
     if health:
         st.success("🟢 Backend API Connected", icon="✅")
         if health.get("api_key_configured"):
-            st.info("🔑 Groq API Key: Configured in `.env`")
+            st.info("🔑 Groq API Key: Configured on Backend")
         else:
-            st.warning("⚠️ Groq API Key: Not set in `.env`")
+            st.warning("⚠️ Groq API Key: Not set on Backend")
     else:
-        st.error("🔴 Backend API Offline\nEnsure FastAPI is running on port 8000.", icon="⚠️")
+        st.error(f"🔴 Backend API Offline\nCould not reach `{BACKEND_BASE_URL}`. Ensure FastAPI is running.", icon="⚠️")
 
     st.markdown("---")
 

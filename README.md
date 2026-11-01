@@ -212,6 +212,9 @@ Open two terminal windows:
 ```
 - Open Web UI: [http://localhost:8501](http://localhost:8501)
 
+### 5. Cloud Deployment (Streamlit Cloud + Render)
+For production deployment with separate hosting (Streamlit Community Cloud for the frontend and Render for the FastAPI backend), see the complete step-by-step guide in [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ---
 
 ## 📊 Live Benchmark Measurements

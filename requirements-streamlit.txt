@@ -1,0 +1,6 @@
+# Lightweight Frontend Requirements for Streamlit Community Cloud
+# When hosting frontend and FastAPI backend separately, only these dependencies are required by the Streamlit runner.
+streamlit>=1.32.0
+requests>=2.31.0
+python-dotenv>=1.0.1
+
