@@ -33,10 +33,8 @@ app.include_router(router, prefix="/api")
 
 @app.on_event("startup")
 def startup_event():
-    """Pre-warm embedding model on container startup to prevent request timeouts."""
-    logger.info("Server starting up. Pre-warming SentenceTransformers embedding model...")
-    embedding_service.warmup()
-    logger.info("SentenceTransformers embedding model is warm and ready.")
+    """Startup hook: keep memory footprint minimal so container easily passes Render 512MB limit."""
+    logger.info("Server started successfully. Embedding model will load lazily on first request to conserve memory.")
 
 @app.get("/")
 def root():
@@ -52,4 +50,3 @@ def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=False)
-

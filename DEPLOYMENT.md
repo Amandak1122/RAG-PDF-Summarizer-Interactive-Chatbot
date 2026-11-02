@@ -50,7 +50,7 @@ This guide provides step-by-step instructions for deploying the **RAG PDF Summar
    - **Runtime:** `Python 3`
    - **Build Command:**
      ```bash
-     pip install -r requirements.txt
+     pip install -r requirements.txt && python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
      ```
    - **Start Command:**
      ```bash
@@ -65,6 +65,10 @@ This guide provides step-by-step instructions for deploying the **RAG PDF Summar
    | `GROQ_API_KEY` | `gsk_...` | **Secret:** Your private Groq API key |
    | `GROQ_MODEL` | `qwen/qwen3.8-27b` | Preserves the active reasoning model |
    | `ALLOWED_ORIGINS` | `*` | Or specify `https://<your-app>.streamlit.app` |
+   | `MALLOC_ARENA_MAX` | `2` | **Essential for Render 512MB RAM:** Prevents glibc memory fragmentation |
+   | `OMP_NUM_THREADS` | `1` | Restricts OpenMP thread memory bloat |
+   | `MKL_NUM_THREADS` | `1` | Restricts MKL thread memory bloat |
+   | `WEB_CONCURRENCY` | `1` | Restricts Uvicorn to 1 process worker |
    | `CHUNK_SIZE` | `800` | Semantic chunk token size |
    | `CHUNK_OVERLAP` | `100` | Chunk overlap tokens |
    | `TOP_K_RESULTS` | `4` | Chunks retrieved per query |

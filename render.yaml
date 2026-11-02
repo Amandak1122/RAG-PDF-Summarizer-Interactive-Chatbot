@@ -16,6 +16,14 @@ services:
         value: qwen/qwen3.8-27b
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
+      - key: WEB_CONCURRENCY
+        value: "1"
       - key: CHUNK_SIZE
         value: "800"
       - key: CHUNK_OVERLAP
@@ -26,4 +34,3 @@ services:
         value: "1.45"
       - key: SIMILARITY_COSINE_MIN
         value: "-0.05"
-

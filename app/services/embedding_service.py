@@ -1,4 +1,5 @@
 import os
+import gc
 import hashlib
 import logging
 import threading
@@ -17,8 +18,8 @@ class EmbeddingService(Embeddings):
     Features:
     - In-memory LRU query embedding cache (0ms for repeated/similar queries).
     - Chunk text content hash cache (avoids re-embedding identical document passages).
-    - Pre-warming capability for zero cold-start request latency.
-    - Thread-safe initialization to prevent concurrent PyTorch OpenMP deadlocks.
+    - Memory-optimized batching (batch_size=16) and single-thread execution for cloud hosting limits (Render Free 512MB).
+    - Thread-safe lazy initialization to prevent startup OpenMP deadlocks and OOM.
     - Inherits from langchain_core.embeddings.Embeddings for direct vectorstore integration.
     """
 
@@ -39,19 +40,22 @@ class EmbeddingService(Embeddings):
     @property
     def model(self) -> HuggingFaceEmbeddings:
         """
-        Loads the embedding model once and keeps it resident in memory.
-        Normalizes embeddings so cosine similarity can be calculated via inner product.
-        Thread-safe double-checked lock prevents concurrent OpenMP initialization deadlocks.
+        Loads the embedding model lazily on first inference request.
+        Restricts PyTorch to single-thread to conserve RAM and prevent thread arena bloat.
         """
         if self._embeddings_model is None:
             with self._lock:
                 if self._embeddings_model is None:
                     try:
+                        import torch
+                        torch.set_num_threads(1)
+                        torch.set_num_interop_threads(1)
+
                         logger.info(f"Loading SentenceTransformers embedding model: {self.model_name}")
                         self._embeddings_model = HuggingFaceEmbeddings(
                             model_name=self.model_name,
                             model_kwargs={"device": "cpu"},
-                            encode_kwargs={"normalize_embeddings": True}
+                            encode_kwargs={"normalize_embeddings": True, "batch_size": 16}
                         )
                     except Exception as e:
                         logger.error(f"Failed to load embedding model '{self.model_name}': {e}")
@@ -62,7 +66,7 @@ class EmbeddingService(Embeddings):
         return self._embeddings_model
 
     def warmup(self) -> None:
-        """Pre-warms the embedding model into RAM during server startup."""
+        """Pre-warms the embedding model into RAM if needed."""
         try:
             _ = self.embed_query("warmup system readiness")
             logger.info("EmbeddingService pre-warmed successfully.")
@@ -87,7 +91,6 @@ class EmbeddingService(Embeddings):
 
         # Cache with LRU eviction
         if len(self._query_cache) >= self._max_query_cache_size:
-            # Evict oldest entry
             self._query_cache.pop(next(iter(self._query_cache)))
         self._query_cache[text_clean] = vec
 
@@ -100,7 +103,7 @@ class EmbeddingService(Embeddings):
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """
         Embeds a batch of document strings into vectors.
-        Reuses cached chunk embeddings to avoid redundant inference on identical passages.
+        Reuses cached chunk embeddings and batches uncached chunks to stay within strict RAM limits.
         """
         if not texts:
             return []
@@ -118,17 +121,23 @@ class EmbeddingService(Embeddings):
                 missing_indices.append(idx)
                 missing_texts.append(text)
 
-        # 2. Compute embeddings only for unseen texts
+        # 2. Compute embeddings in small memory-conscious batches
         if missing_texts:
             logger.info(f"Computing embeddings for {len(missing_texts)} new chunks ({len(texts) - len(missing_texts)} cached).")
-            new_vectors = self.model.embed_documents(missing_texts)
+            batch_size = 16
+            new_vectors = []
+            for i in range(0, len(missing_texts), batch_size):
+                batch = missing_texts[i:i + batch_size]
+                new_vectors.extend(self.model.embed_documents(batch))
+
             for orig_idx, vec in zip(missing_indices, new_vectors):
                 results[orig_idx] = vec
                 thash = self._hash_text(texts[orig_idx])
                 if len(self._chunk_cache) < self._max_chunk_cache_size:
                     self._chunk_cache[thash] = vec
+
+            gc.collect()
         else:
             logger.info(f"All {len(texts)} chunks retrieved from chunk embedding cache (0ms inference).")
 
         return results  # type: ignore
-
