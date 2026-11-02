@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 from app.config import settings
-from app.api.routes import router
+from app.api.routes import router, embedding_service
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -29,6 +29,13 @@ app.add_middleware(
 
 # Register API Router
 app.include_router(router, prefix="/api")
+
+@app.on_event("startup")
+def startup_event():
+    """Pre-warm embedding model on container startup to prevent request timeouts."""
+    logger.info("Server starting up. Pre-warming SentenceTransformers embedding model...")
+    embedding_service.warmup()
+    logger.info("SentenceTransformers embedding model is warm and ready.")
 
 @app.get("/")
 def root():

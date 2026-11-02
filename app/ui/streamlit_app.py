@@ -1,8 +1,12 @@
 import os
 import json
 import uuid
+from dotenv import load_dotenv
 import streamlit as st
 import requests
+
+# Load environment variables if running locally
+load_dotenv()
 
 # Set page layout and metadata
 st.set_page_config(
@@ -37,6 +41,23 @@ def _resolve_backend_url() -> str:
     if not raw_url.endswith("/api"):
         raw_url = f"{raw_url}/api"
     return raw_url
+
+def _extract_error_detail(res: requests.Response, default_msg: str = "Request failed.") -> str:
+    """Safely extracts error details from an HTTP response without crashing on non-JSON HTML pages."""
+    try:
+        data = res.json()
+        if isinstance(data, dict):
+            return data.get("detail", default_msg)
+        return str(data)
+    except Exception:
+        status = res.status_code
+        if status == 502:
+            return "502 Bad Gateway: The cloud backend is starting up or took too long to initialize the embedding model. Please wait 15-20 seconds and click Process again."
+        elif status == 504:
+            return "504 Gateway Timeout: The cloud backend timed out processing the document."
+        elif status == 503:
+            return "503 Service Unavailable: The backend server is currently spinning up."
+        return res.text[:200] if res.text else f"HTTP error {status}"
 
 # Backend REST API configuration
 BACKEND_BASE_URL = _resolve_backend_url()
@@ -73,6 +94,7 @@ def get_backend_health(session_id: str):
 with st.sidebar:
     st.title("⚙️ RAG Control Panel")
     st.caption(f"Session ID: `{st.session_state.session_id}`")
+    st.caption(f"Backend Target: `{BACKEND_BASE_URL}`")
 
     # Backend Connectivity Badge
     health = get_backend_health(st.session_state.session_id)
@@ -126,7 +148,7 @@ with st.sidebar:
                         st.session_state.summary_data = None
                         st.success(f"Indexed **{data['filename']}** successfully!")
                     else:
-                        error_detail = res.json().get("detail", "Failed to process PDF.")
+                        error_detail = _extract_error_detail(res, "Failed to process PDF.")
                         st.error(f"Error ({res.status_code}): {error_detail}")
                 except Exception as e:
                     st.error(f"Upload connection error: {str(e)}")
@@ -200,7 +222,7 @@ if st.session_state.document_info:
                     if res.status_code == 200:
                         st.session_state.summary_data = res.json()
                     else:
-                        st.error(res.json().get("detail", "Summarization failed."))
+                        st.error(_extract_error_detail(res, "Summarization failed."))
                 except Exception as e:
                     st.error(f"Summarization request failed: {str(e)}")
 
@@ -265,7 +287,7 @@ for idx, msg in enumerate(st.session_state.chat_history):
                                     st.session_state.pending_fallback = None
                                     st.rerun()
                                 else:
-                                    st.error(fb_res.json().get("detail", "Fallback request failed."))
+                                    st.error(_extract_error_detail(fb_res, "Fallback request failed."))
                             except Exception as e:
                                 st.error(f"Fallback connection error: {str(e)}")
                 with col2:
@@ -417,7 +439,7 @@ if user_question:
                             })
                         st.rerun()
                     else:
-                        error_detail = res.json().get("detail", "Error generating answer.")
+                        error_detail = _extract_error_detail(res, "Error generating answer.")
                         st.error(f"Error ({res.status_code}): {error_detail}")
         except Exception as e:
             st.error(f"Failed to communicate with RAG backend: {str(e)}")

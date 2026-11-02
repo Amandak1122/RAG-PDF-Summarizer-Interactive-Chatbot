@@ -8,10 +8,6 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from app.config import settings
 
-# Enforce offline mode for cached HuggingFace models to prevent network retry timeouts
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
-
 logger = logging.getLogger(__name__)
 
 class EmbeddingService(Embeddings):
